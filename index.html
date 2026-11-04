@@ -21,11 +21,36 @@ body{font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:
 .hero .row div{flex:1;background:rgba(255,255,255,.16);border-radius:12px;padding:8px 10px}
 .hero .row small{display:block;font-size:11px;opacity:.85}
 .hero .row b{font-size:16px}
+.hstats .row+.row{margin-top:8px}
+.hsplits:empty{display:none}
+@media(min-width:900px){
+  .wrap{max-width:1200px;padding:28px 32px}
+  .nav{max-width:420px;margin:0 auto 18px}
+  .hero{display:grid;grid-template-columns:1fr 1.3fr 1fr;gap:28px;align-items:center;padding:26px 30px;margin-bottom:22px}
+  .hero .big{font-size:52px;margin:4px 0 0}
+  .hero .lbl{font-size:15px}
+  .hero .row b{font-size:20px}
+  .hero .row div{padding:12px 14px}
+  .hero .row small{font-size:12px}
+  .split{margin-top:0;font-size:14px}
+  .split+.split{margin-top:12px}
+  .cols{display:grid;grid-template-columns:2fr 1fr;grid-template-areas:'cats inc' 'cats bak';grid-template-rows:auto 1fr;gap:0 32px;align-items:start}
+  .colB{grid-area:cats}.colI{grid-area:inc}.colK{grid-area:bak}
+  .colB #cats{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px;align-items:start}
+  .catwrap .cat{margin-bottom:0}
+  .catwrap.open{grid-column:1/-1}
+  .catwrap.open .cat{margin-bottom:10px}
+  #cats>.empty{grid-column:1/-1}
+  .sheetbg{align-items:center}
+  .sheet{border-radius:20px;max-width:520px}
+  .fab .in{max-width:520px}
+}
 .split{margin-top:10px;font-size:13px}
 .split .h{opacity:.85;font-size:12px;margin-bottom:2px}
 .split .l{display:flex;justify-content:space-between;padding:5px 2px;border-top:1px solid rgba(255,255,255,.22)}
 .split .l span small{opacity:.8}
 h4{font-size:15px;margin:16px 0 8px}
+.catwrap.open .cat{margin-bottom:10px}
 .sec{display:flex;justify-content:space-between;align-items:center;margin:16px 2px 8px}
 .sec h2{font-size:16px}
 .link{background:none;border:none;color:var(--primary);font-size:14px;cursor:pointer;font-weight:600}
@@ -71,32 +96,38 @@ input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:
 
   <div id="sync" style="text-align:center;font-size:12px;color:var(--muted);margin:-4px 0 8px;min-height:14px"></div>
   <div class="hero">
-    <div class="lbl">יתרה בסוף החודש</div>
-    <div class="big" id="remain"></div>
-    <div class="row">
+    <div class="hmain"><div class="lbl">יתרה בסוף החודש</div>
+    <div class="big" id="remain"></div></div>
+    <div class="hstats"><div class="row">
       <div><small>סך הכנסות</small><b id="inc"></b></div>
       <div><small>הוצאות</small><b id="exp"></b></div>
     </div>
     <div class="row" style="margin-top:8px">
       <div><small>סה"כ חיובים באשראי</small><b id="credit"></b></div>
       <div><small>סה"כ חיובים בחשבון</small><b id="acct"></b></div>
-    </div>
-    <div class="split" id="cardsplit"></div>
-    <div class="split" id="placesplit"></div>
+    </div></div>
+    <div class="hsplits"><div class="split" id="cardsplit"></div>
+    <div class="split" id="placesplit"></div></div>
   </div>
 
+  <div class="cols">
+  <div class="colI">
   <div class="sec"><h2>הכנסות החודש</h2></div>
   <div id="incomes"></div>
-
+  </div>
+  <div class="colB">
   <div class="sec"><h2>קטגוריות</h2><button class="link" id="manageCats">הגדרות</button></div>
   <div id="cats"></div>
-
+  </div>
+  <div class="colK">
   <div class="sec"><h2>גיבוי</h2></div>
   <div style="display:flex;gap:10px">
     <button class="btn ghost" id="exportBtn" style="font-size:14px;padding:10px">ייצוא</button>
     <button class="btn ghost" id="importBtn" style="font-size:14px;padding:10px">ייבוא</button>
     <button class="btn ghost" id="logoutBtn" style="font-size:14px;padding:10px;display:none">התנתק</button>
     <input type="file" id="file" accept=".json" hidden>
+  </div>
+  </div>
   </div>
 </div>
 
@@ -310,20 +341,20 @@ function render(){
     catsEl.innerHTML=db.cats.map(k=>{
       const spent=exps.filter(x=>x.cat===k.id).reduce((a,x)=>a+x.amount,0);
       if(!(k.budget>0)){
-        return `<div class="cat" data-id="${k.id}"><div class="top"><span class="name">${esc(k.name)}${arr(k.id)}</span><span class="left">${fmt(spent)}</span></div><div class="sub"><span>הוצאו</span><span>ללא תקציב</span></div></div>`+detail(k.id);
+        return `<div class="catwrap${openCats.has(k.id)?' open':''}"><div class="cat" data-id="${k.id}"><div class="top"><span class="name">${esc(k.name)}${arr(k.id)}</span><span class="left">${fmt(spent)}</span></div><div class="sub"><span>הוצאו</span><span>ללא תקציב</span></div></div>`+detail(k.id)+'</div>';
       }
       const left=k.budget-spent;
       const pct=k.budget>0?Math.min(100,spent/k.budget*100):(spent>0?100:0);
       const cls=left<0?'bad':(pct>=80?'warn':'ok');
       const color=left<0?'var(--bad)':(pct>=80?'var(--warn)':'var(--ok)');
-      return `<div class="cat" data-id="${k.id}">
+      return `<div class="catwrap${openCats.has(k.id)?' open':''}"><div class="cat" data-id="${k.id}">
         <div class="top"><span class="name">${esc(k.name)}${arr(k.id)}</span><span class="left ${cls}">${left<0?'חריגה '+fmt(-left):fmt(left)+' נשאר'}</span></div>
         <div class="bar"><i style="width:${pct}%;background:${color}"></i></div>
         <div class="sub"><span>הוצאו ${fmt(spent)}</span><span>תקציב ${fmt(k.budget)}</span></div>
-      </div>`+detail(k.id);
+      </div>`+detail(k.id)+'</div>';
     }).join('');
     const orphan=exps.filter(x=>!db.cats.some(k=>k.id===x.cat)).reduce((a,x)=>a+x.amount,0);
-    if(orphan>0)catsEl.innerHTML+=`<div class="cat" data-id="__none"><div class="top"><span class="name">ללא קטגוריה${arr("__none")}</span><span class="left">${fmt(orphan)}</span></div></div>`+detail("__none");
+    if(orphan>0)catsEl.innerHTML+=`<div class="catwrap${openCats.has("__none")?' open':''}"><div class="cat" data-id="__none"><div class="top"><span class="name">ללא קטגוריה${arr("__none")}</span><span class="left">${fmt(orphan)}</span></div></div>`+detail("__none")+'</div>';
   }
 
   document.getElementById('incomes').innerHTML=`<div class="cat" data-toggle-inc="1"><div class="top"><span class="name">סך הכנסות ${incOpen?'▴':'▾'}</span><span class="left ok">${fmt(totalInc)}</span></div></div>`+
