@@ -107,10 +107,10 @@ input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:
 
 <div class="sheetbg" id="login" style="z-index:50;align-items:center;background:var(--bg)"><div class="sheet" style="border-radius:20px;margin:14px;max-width:420px">
   <h3 style="justify-content:center">מעקב הוצאות</h3>
-  <label>אימייל</label><input id="le" type="email" autocomplete="username">
-  <label>סיסמה</label><input id="lp" type="password" autocomplete="current-password">
+  <input id="le" type="hidden" value="owner@expenses.app">
+  <label>סיסמה</label><input id="lp" type="password" inputmode="numeric" autocomplete="current-password">
   <div id="lmsg" class="hint" style="color:var(--bad);min-height:16px"></div>
-  <div style="display:flex;gap:10px;margin-top:12px"><button class="btn ghost" id="lup">הרשמה</button><button class="btn" id="lin">התחברות</button></div>
+  <div style="display:flex;gap:10px;margin-top:12px"><button class="btn" id="lin">כניסה</button></div>
 </div></div>
 <div class="sheetbg" id="ask" style="z-index:30"><div class="sheet"><h3 id="askMsg"></h3><div style="display:flex;gap:10px"><button class="btn ghost n">ביטול</button><button class="btn y" style="background:var(--bad)">כן, מחק</button></div></div></div>
 <div class="sheetbg" id="bg"><div class="sheet" id="sheet"></div></div>
@@ -194,7 +194,7 @@ function showLogin(msg){
 }
 async function doAuth(kind){
   const email=document.getElementById('le').value.trim(),pw=document.getElementById('lp').value;
-  if(!email||pw.length<6){document.getElementById('lmsg').textContent='נא למלא אימייל וסיסמה (לפחות 6 תווים)';return;}
+  if(!email||pw.length<6){document.getElementById('lmsg').textContent='נא להזין סיסמה';return;}
   document.getElementById('lmsg').textContent='...';
   try{
     const j=await authCall(kind==='up'?'/auth/v1/signup':'/auth/v1/token?grant_type=password',{email,password:pw});
@@ -202,7 +202,7 @@ async function doAuth(kind){
     sess=mkSess(j);saveSess();
     document.getElementById('login').classList.remove('on');
     await pull();render();
-  }catch(e){document.getElementById('lmsg').textContent=e.message==='Invalid login credentials'?'אימייל או סיסמה שגויים':e.message;}
+  }catch(e){document.getElementById('lmsg').textContent=e.message==='Invalid login credentials'?'סיסמה שגויה':e.message;}
 }
 function logout(){sess=null;try{localStorage.removeItem(SKEY);}catch(e){}setSync('');showLogin();}
 async function boot(){
@@ -489,7 +489,7 @@ $('manageCats').onclick=categoriesSheet;
 $('next').onclick=()=>{offset--;render();};
 $('prev').onclick=()=>{offset++;render();};
 
-$('lin').onclick=()=>doAuth('in');$('lup').onclick=()=>doAuth('up');
+$('lin').onclick=()=>doAuth('in');
 $('lp').onkeydown=e=>{if(e.key==='Enter')doAuth('in');};
 if(cloud)$('logoutBtn').style.display='block';
 $('logoutBtn').onclick=()=>ask('להתנתק? הנתונים נשארים בענן.',logout,'כן, התנתק');
