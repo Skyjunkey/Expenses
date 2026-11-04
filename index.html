@@ -151,6 +151,14 @@ const KEY='expense-tracker-v1';
 const CYCLE_DAY=10;
 let db=norm(load());
 let offset=0;
+try{ /* זוכר את החודש שצפית בו גם אחרי רענון (עד 6 שעות) */
+  const [sc,ts]=(localStorage.getItem('expense-cyc')||'|0').split('|');
+  if(sc&&Date.now()-(+ts)<6*3600*1000){
+    const t=new Date();let m=t.getMonth();if(t.getDate()<CYCLE_DAY)m--;
+    offset=(+sc.slice(0,4)-t.getFullYear())*12+(+sc.slice(5,7)-1-m);
+  }
+}catch(e){}
+const rememberCycle=()=>{try{localStorage.setItem('expense-cyc',cycle().start+'|'+Date.now());}catch(e){}};
 let incOpen=false;
 const openCats=new Set();
 
@@ -518,8 +526,8 @@ $('addExp').onclick=()=>expenseForm();
 $('addInc').onclick=()=>incomeForm();
 $('manageCats').onclick=categoriesSheet;
 // RTL: right button (›) = back in time, left button (‹) = forward
-$('next').onclick=()=>{offset--;render();};
-$('prev').onclick=()=>{offset++;render();};
+$('next').onclick=()=>{offset--;rememberCycle();render();};
+$('prev').onclick=()=>{offset++;rememberCycle();render();};
 
 $('lin').onclick=()=>doAuth('in');
 $('lp').onkeydown=e=>{if(e.key==='Enter')doAuth('in');};
