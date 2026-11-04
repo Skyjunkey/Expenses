@@ -159,7 +159,7 @@ function load(){
   return {cats:[],cards:[],places:[],skips:[],stops:[],incomes:[],expenses:[]};
 }
 const placeLabel=id=>{const p=db.places.find(c=>c.id===id);return p?p.name:'';};
-const expLabel=x=>(x.n?'':(x.recurring?'🔁 ':''))+((x.place&&placeLabel(x.place))||x.note||'הוצאה')+(x.n?' ('+x.k+'/'+x.n+')':'');
+const expLabel=x=>(x.n?'':(x.recurring?'🔁 ':''))+(x.note||(x.place&&placeLabel(x.place))||'הוצאה')+(x.n?' ('+x.k+'/'+x.n+')':'');
 const cardLabel=id=>{const k=db.cards.find(c=>c.id===id);return k?k.name+(k.owner?' ('+k.owner+')':''):'כרטיס שנמחק';};
 /* ===== Supabase (ענן) — מלא את שני הערכים האלה. אם נשארים ריקים האפליקציה עובדת מקומית בלבד ===== */
 const SB_URL='https://smlwwofthvsaxtwsdyfn.supabase.co';
@@ -331,7 +331,7 @@ function render(){
   const detail=id=>{
     if(!openCats.has(id))return '';
     const l=exps.filter(x=>id==='__none'?!db.cats.some(q=>q.id===x.cat):x.cat===id).sort((a,b)=>b.date.localeCompare(a.date));
-    return l.length?l.map(x=>`<div class="item"><div class="m"><b>${esc(expLabel(x))}</b><small>${dm(x.date)} · ${x.pay==='card'?'💳 '+esc(cardLabel(x.card)):'🏦 חשבון'}</small></div><span class="a">${fmt(x.amount)}</span><button class="x" style="color:var(--primary)" data-edit-exp="${x.id}">✎</button><button class="x" data-del-exp="${x.id}">✕</button></div>`).join(''):'<div class="empty">אין הוצאות עדיין</div>';
+    return l.length?l.map(x=>`<div class="item"><div class="m"><b>${esc(expLabel(x))}</b><small>${dm(x.date)}${x.note&&x.place&&placeLabel(x.place)?' · '+esc(placeLabel(x.place)):''} · ${x.pay==='card'?'💳 '+esc(cardLabel(x.card)):'🏦 חשבון'}</small></div><span class="a">${fmt(x.amount)}</span><button class="x" style="color:var(--primary)" data-edit-exp="${x.id}">✎</button><button class="x" data-del-exp="${x.id}">✕</button></div>`).join(''):'<div class="empty">אין הוצאות עדיין</div>';
   };
   const arr=id=>openCats.has(id)?' ▴':' ▾';
   const catsEl=document.getElementById('cats');
@@ -386,6 +386,7 @@ function expenseForm(editId){
   const missingCard=ex&&ex.pay==='card'&&!db.cards.some(k=>k.id===ex.card)?`<option value="${ex.card}" selected>💳 כרטיס שנמחק</option>`:'';
   openSheet(`<h3>${ex?'עריכת הוצאה':'הוצאה חדשה'} <button class="x" onclick="closeSheet()">✕</button></h3>
     <label>סכום</label><input id="fa" type="number" inputmode="decimal" placeholder="0" value="${ex?ex.amount:''}">
+    <label>שם ההוצאה (לא חובה)</label><input id="fnm" type="text" value="${ex?esc(ex.note||''):''}">
     <label>קטגוריה</label><select id="fc">${db.cats.map(k=>`<option value="${k.id}"${sel(k.id,ex&&ex.cat)}>${esc(k.name)}</option>`).join('')}</select>
     <label>אמצעי תשלום</label><select id="fp"><option value="acct"${sel('acct',cur)}>🏦 מהחשבון</option>${db.cards.map(k=>`<option value="${k.id}"${sel(k.id,cur)}>💳 ${esc(cardLabel(k.id))}</option>`).join('')}${missingCard}</select>
     <label>תאריך</label><input id="fd" type="date" value="${def}">
@@ -415,7 +416,7 @@ function expenseForm(editId){
       if(!(n>=2)){$('fn2').focus();return;}
       if($('fb').value==='total')amt=Math.round(a/n*100)/100;
     }
-    const data={amount:amt,cat:$('fc').value,date:$('fd').value||today(),place:$('fl').value,note:ex?ex.note||'':'',pay:p==='acct'?'acct':'card',card:p==='acct'?null:p,n};
+    const data={amount:amt,cat:$('fc').value,date:$('fd').value||today(),place:$('fl').value,note:$('fnm').value.trim(),pay:p==='acct'?'acct':'card',card:p==='acct'?null:p,n};
     if(ex){
       const wasSeries=!!(ex.recurring&&ex.rid);
       const cs=cycStartOf(ex.date),rid=ex.rid;
@@ -499,7 +500,7 @@ function catDetail(id){
   const k=db.cats.find(x=>x.id===id);
   const list=db.expenses.filter(x=>inCycle(x.date,c)&&(id==='__none'?!db.cats.some(q=>q.id===x.cat):x.cat===id)).sort((a,b)=>b.date.localeCompare(a.date));
   openSheet(`<h3>${esc(k?k.name:'ללא קטגוריה')} <button class="x" onclick="closeSheet()">✕</button></h3>`+
-    (list.length?list.map(x=>`<div class="item"><div class="m"><b>${esc(expLabel(x))}</b><small>${dm(x.date)} · ${x.pay==='card'?'💳 '+esc(cardLabel(x.card)):'🏦 חשבון'}</small></div><span class="a">${fmt(x.amount)}</span><button class="x" style="color:var(--primary)" data-edit-exp="${x.id}">✎</button><button class="x" data-del-exp="${x.id}">✕</button></div>`).join(''):'<div class="empty">אין הוצאות עדיין</div>'));
+    (list.length?list.map(x=>`<div class="item"><div class="m"><b>${esc(expLabel(x))}</b><small>${dm(x.date)}${x.note&&x.place&&placeLabel(x.place)?' · '+esc(placeLabel(x.place)):''} · ${x.pay==='card'?'💳 '+esc(cardLabel(x.card)):'🏦 חשבון'}</small></div><span class="a">${fmt(x.amount)}</span><button class="x" style="color:var(--primary)" data-edit-exp="${x.id}">✎</button><button class="x" data-del-exp="${x.id}">✕</button></div>`).join(''):'<div class="empty">אין הוצאות עדיין</div>'));
 }
 
 document.addEventListener('click',e=>{
