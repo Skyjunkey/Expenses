@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>מעקב הוצאות</title>
+<style>
+:root{--bg:#f4f5f8;--card:#fff;--text:#1d2433;--muted:#7a8296;--primary:#3b5bdb;--ok:#2f9e5b;--warn:#e8890c;--bad:#d6336c;--line:#e6e8ee}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif;background:var(--bg);color:var(--text);padding-bottom:90px}
+.wrap{max-width:560px;margin:0 auto;padding:14px}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.nav button{background:var(--card);border:1px solid var(--line);border-radius:10px;width:40px;height:40px;font-size:18px;cursor:pointer}
+.nav .t{text-align:center}
+.nav .t b{display:block;font-size:16px}
+.nav .t small{color:var(--muted);font-size:12px}
+.hero{background:linear-gradient(135deg,#3b5bdb,#5c7cfa);color:#fff;border-radius:18px;padding:18px;margin-bottom:14px}
+.hero .lbl{font-size:13px;opacity:.85}
+.hero .big{font-size:34px;font-weight:700;margin:2px 0 10px}
+.hero .row{display:flex;gap:10px}
+.hero .row div{flex:1;background:rgba(255,255,255,.16);border-radius:12px;padding:8px 10px}
+.hero .row small{display:block;font-size:11px;opacity:.85}
+.hero .row b{font-size:16px}
+.split{margin-top:10px;font-size:13px}
+.split .h{opacity:.85;font-size:12px;margin-bottom:2px}
+.split .l{display:flex;justify-content:space-between;padding:5px 2px;border-top:1px solid rgba(255,255,255,.22)}
+.split .l span small{opacity:.8}
+h4{font-size:15px;margin:16px 0 8px}
+.sec{display:flex;justify-content:space-between;align-items:center;margin:16px 2px 8px}
+.sec h2{font-size:16px}
+.link{background:none;border:none;color:var(--primary);font-size:14px;cursor:pointer;font-weight:600}
+.cat{background:var(--card);border-radius:14px;padding:12px 14px;margin-bottom:10px;cursor:pointer;border:1px solid var(--line)}
+.cat .top{display:flex;justify-content:space-between;align-items:baseline}
+.cat .name{font-weight:600}
+.cat .left{font-weight:700}
+.cat .sub{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-top:4px}
+.bar{height:8px;background:#eceef4;border-radius:6px;margin-top:8px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:6px;background:var(--ok)}
+.ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+.empty{text-align:center;color:var(--muted);padding:24px 10px;background:var(--card);border-radius:14px;border:1px dashed var(--line)}
+.item{display:flex;justify-content:space-between;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;gap:8px}
+.item .m{flex:1;min-width:0}
+.item .m b{display:block;font-size:14px}
+.item .m small{color:var(--muted);font-size:12px}
+.item .a{font-weight:700;white-space:nowrap}
+.x{background:none;border:none;color:var(--bad);font-size:18px;cursor:pointer;padding:4px 8px}
+.fab{position:fixed;bottom:0;left:0;right:0;background:linear-gradient(transparent,var(--bg) 40%);padding:14px 14px calc(14px + env(safe-area-inset-bottom))}
+.fab .in{max-width:560px;margin:0 auto;display:flex;gap:10px}
+.btn{flex:1;border:none;border-radius:14px;padding:14px;font-size:16px;font-weight:700;cursor:pointer;color:#fff;background:var(--primary)}
+.btn.sec2{background:var(--ok)}
+.btn.ghost{background:#e9ecf5;color:var(--text)}
+.sheetbg{position:fixed;inset:0;background:rgba(10,15,30,.45);display:none;align-items:flex-end;justify-content:center;z-index:10}
+.sheetbg.on{display:flex}
+.sheet{background:var(--card);width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:18px;max-height:88vh;overflow:auto;padding-bottom:calc(18px + env(safe-area-inset-bottom))}
+.sheet h3{margin-bottom:12px;font-size:18px;display:flex;justify-content:space-between;align-items:center}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 4px}
+input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:16px;background:#fff;color:var(--text);font-family:inherit}
+.crow{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.crow input[type=text]:first-child{flex:2}.crow input:nth-child(2){flex:1}
+.crow input[type=checkbox]{width:20px;height:20px;flex:none}
+.hint{font-size:12px;color:var(--muted);margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <button id="next" aria-label="חודש הבא">›</button>
+    <div class="t"><b id="cycTitle"></b><small id="cycRange"></small></div>
+    <button id="prev" aria-label="חודש קודם">‹</button>
+  </div>
+
+  <div id="sync" style="text-align:center;font-size:12px;color:var(--muted);margin:-4px 0 8px;min-height:14px"></div>
+  <div class="hero">
+    <div class="lbl">יתרה בסוף החודש</div>
+    <div class="big" id="remain"></div>
+    <div class="row">
+      <div><small>סך הכנסות</small><b id="inc"></b></div>
+      <div><small>הוצאות</small><b id="exp"></b></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div><small>סה"כ חיובים באשראי</small><b id="credit"></b></div>
+      <div><small>סה"כ חיובים בחשבון</small><b id="acct"></b></div>
+    </div>
+    <div class="split" id="cardsplit"></div>
+    <div class="split" id="placesplit"></div>
+  </div>
+
+  <div class="sec"><h2>הכנסות החודש</h2></div>
+  <div id="incomes"></div>
+
+  <div class="sec"><h2>קטגוריות</h2><button class="link" id="manageCats">הגדרות</button></div>
+  <div id="cats"></div>
+
+  <div class="sec"><h2>גיבוי</h2></div>
+  <div style="display:flex;gap:10px">
+    <button class="btn ghost" id="exportBtn" style="font-size:14px;padding:10px">ייצוא</button>
+    <button class="btn ghost" id="importBtn" style="font-size:14px;padding:10px">ייבוא</button>
+    <button class="btn ghost" id="logoutBtn" style="font-size:14px;padding:10px;display:none">התנתק</button>
+    <input type="file" id="file" accept=".json" hidden>
+  </div>
+</div>
+
+<div class="fab"><div class="in">
+  <button class="btn sec2" id="addInc">+ הכנסה</button>
+  <button class="btn" id="addExp">+ הוצאה</button>
+</div></div>
+
+<div class="sheetbg" id="login" style="z-index:50;align-items:center;background:var(--bg)"><div class="sheet" style="border-radius:20px;margin:14px;max-width:420px">
+  <h3 style="justify-content:center">מעקב הוצאות</h3>
+  <label>אימייל</label><input id="le" type="email" autocomplete="username">
+  <label>סיסמה</label><input id="lp" type="password" autocomplete="current-password">
+  <div id="lmsg" class="hint" style="color:var(--bad);min-height:16px"></div>
+  <div style="display:flex;gap:10px;margin-top:12px"><button class="btn ghost" id="lup">הרשמה</button><button class="btn" id="lin">התחברות</button></div>
+</div></div>
+<div class="sheetbg" id="ask" style="z-index:30"><div class="sheet"><h3 id="askMsg"></h3><div style="display:flex;gap:10px"><button class="btn ghost n">ביטול</button><button class="btn y" style="background:var(--bad)">כן, מחק</button></div></div></div>
+<div class="sheetbg" id="bg"><div class="sheet" id="sheet"></div></div>
+
+<script>
+const KEY='expense-tracker-v1';
+const CYCLE_DAY=10;
+let db=norm(load());
+let offset=0;
+let incOpen=false;
+const openCats=new Set();
+
+function load(){
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.cats){d.cards=d.cards||[];d.places=d.places||[];d.skips=d.skips||[];d.stops=d.stops||[];return d;}}catch(e){}
+  return {cats:[],cards:[],places:[],skips:[],stops:[],incomes:[],expenses:[]};
+}
+const placeLabel=id=>{const p=db.places.find(c=>c.id===id);return p?p.name:'';};
+const expLabel=x=>(x.n?'':(x.recurring?'🔁 ':''))+((x.place&&placeLabel(x.place))||x.note||'הוצאה')+(x.n?' ('+x.k+'/'+x.n+')':'');
+const cardLabel=id=>{const k=db.cards.find(c=>c.id===id);return k?k.name+(k.owner?' ('+k.owner+')':''):'כרטיס שנמחק';};
+/* ===== Supabase (ענן) — מלא את שני הערכים האלה. אם נשארים ריקים האפליקציה עובדת מקומית בלבד ===== */
+const SB_URL='https://smlwwofthvsaxtwsdyfn.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNtbHd3b2Z0aHZzYXh0d3NkeWZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM3OTY1NTgsImV4cCI6MjEwOTM3MjU1OH0.3yMpfXgWKUaAyzFg1gt9LpcQpvAdOQCdKhrYDYVWP8U';
+const cloud=!!(SB_URL&&SB_KEY);
+const SKEY='expense-tracker-session';
+let sess=null,pushTimer=null,pushing=false,dirty=false;
+
+function norm(d){d=d||{};['cats','cards','places','skips','stops','incomes','expenses'].forEach(k=>{d[k]=d[k]||[];});d._ts=d._ts||0;return d;}
+function save(){
+  db._ts=Date.now();
+  try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){}
+  if(cloud&&sess){dirty=true;setSync('⏳ שומר...');clearTimeout(pushTimer);pushTimer=setTimeout(push,800);}
+}
+function setSync(t){const e=document.getElementById('sync');if(e)e.textContent=t;}
+const saveSess=()=>{try{localStorage.setItem(SKEY,JSON.stringify(sess));}catch(e){}};
+async function authCall(path,body){
+  const r=await fetch(SB_URL+path,{method:'POST',headers:{apikey:SB_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.error_description||j.msg||j.message||'שגיאה');
+  return j;
+}
+const mkSess=j=>({access_token:j.access_token,refresh_token:j.refresh_token,expires_at:Math.floor(Date.now()/1000)+(j.expires_in||3600),user:{id:j.user.id,email:j.user.email}});
+async function token(){
+  if(sess.expires_at-60<Date.now()/1000){
+    const j=await authCall('/auth/v1/token?grant_type=refresh_token',{refresh_token:sess.refresh_token});
+    sess=mkSess(j);saveSess();
+  }
+  return sess.access_token;
+}
+async function api(method,path,body,extra){
+  const t=await token();
+  return fetch(SB_URL+'/rest/v1/'+path,{method,keepalive:!!extra,headers:{apikey:SB_KEY,Authorization:'Bearer '+t,'Content-Type':'application/json',Prefer:'resolution=merge-duplicates'},body:body?JSON.stringify(body):undefined});
+}
+async function push(flush){
+  if(!cloud||!sess||pushing&&!flush)return;
+  pushing=true;
+  try{
+    const r=await api('POST','app_state?on_conflict=user_id',{user_id:sess.user.id,data:db,updated_at:new Date().toISOString()},flush);
+    if(!r.ok)throw new Error(r.status);
+    dirty=false;setSync('☁️ מסונכרן · '+sess.user.email);
+  }catch(e){setSync('⚠️ לא נשמר בענן (נשמר מקומית) — ינסה שוב');clearTimeout(pushTimer);pushTimer=setTimeout(push,8000);}
+  pushing=false;
+}
+async function pull(){
+  if(!cloud||!sess||dirty)return;
+  try{
+    const r=await api('GET','app_state?select=data&limit=1');
+    if(!r.ok)throw new Error(r.status);
+    const rows=await r.json();
+    if(rows.length){
+      const remote=norm(rows[0].data);
+      if(remote._ts>(db._ts||0)){db=remote;try{localStorage.setItem(KEY,JSON.stringify(db));}catch(e){}}
+      else if((db._ts||0)>remote._ts)await push();
+      else setSync('☁️ מסונכרן · '+sess.user.email);
+    }else await push();
+    setSync('☁️ מסונכרן · '+sess.user.email);
+  }catch(e){setSync('⚠️ אין חיבור לענן — עובד מקומית');}
+}
+function showLogin(msg){
+  const o=document.getElementById('login');o.classList.add('on');
+  document.getElementById('lmsg').textContent=msg||'';
+}
+async function doAuth(kind){
+  const email=document.getElementById('le').value.trim(),pw=document.getElementById('lp').value;
+  if(!email||pw.length<6){document.getElementById('lmsg').textContent='נא למלא אימייל וסיסמה (לפחות 6 תווים)';return;}
+  document.getElementById('lmsg').textContent='...';
+  try{
+    const j=await authCall(kind==='up'?'/auth/v1/signup':'/auth/v1/token?grant_type=password',{email,password:pw});
+    if(!j.access_token){document.getElementById('lmsg').textContent='נשלח מייל אישור — אשר אותו ואז התחבר';return;}
+    sess=mkSess(j);saveSess();
+    document.getElementById('login').classList.remove('on');
+    await pull();render();
+  }catch(e){document.getElementById('lmsg').textContent=e.message==='Invalid login credentials'?'אימייל או סיסמה שגויים':e.message;}
+}
+function logout(){sess=null;try{localStorage.removeItem(SKEY);}catch(e){}setSync('');showLogin();}
+async function boot(){
+  if(!cloud){render();return;}
+  try{sess=JSON.parse(localStorage.getItem(SKEY));}catch(e){sess=null;}
+  if(!sess){showLogin();return;}
+  setSync('⏳ טוען מהענן...');
+  try{await token();}catch(e){sess=null;showLogin('נא להתחבר מחדש');return;}
+  await pull();render();
+}
+document.addEventListener('visibilitychange',()=>{
+  if(!cloud||!sess)return;
+  if(document.hidden){if(dirty){clearTimeout(pushTimer);push(true);}}
+  else pull().then(render);
+});
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const fmt=n=>'₪'+Math.round(n).toLocaleString('he-IL');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const dm=s=>{const [y,m,d]=s.split('-');return d+'/'+m;};
+
+function cycle(){
+  const t=new Date();
+  let y=t.getFullYear(),m=t.getMonth();
+  if(t.getDate()<CYCLE_DAY)m--;
+  m+=offset;
+  const s=new Date(y,m,CYCLE_DAY),e=new Date(y,m+1,CYCLE_DAY);
+  return {start:iso(s),end:iso(e),s,e};
+}
+const inCycle=(d,c)=>d>=c.start&&d<c.end;
+
+const MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
+
+function cycStartOf(ds){
+  const y=+ds.slice(0,4),m=+ds.slice(5,7)-1,d=+ds.slice(8,10);
+  return iso(new Date(y,d>=CYCLE_DAY?m:m-1,CYCLE_DAY));
+}
+function ensureRecurring(c){
+  if(offset>1)return;
+  const rids=[...new Set(db.expenses.filter(x=>x.recurring&&x.rid).map(x=>x.rid))];
+  let ch=false;
+  rids.forEach(rid=>{
+    if(db.stops.some(s=>s.rid===rid&&s.from<=c.start))return;
+    if(db.skips.some(s=>s.rid===rid&&s.cyc===c.start))return;
+    if(db.expenses.some(x=>x.rid===rid&&inCycle(x.date,c)))return;
+    const prev=db.expenses.filter(x=>x.rid===rid&&x.recurring&&x.date<c.start).sort((a,b)=>b.date.localeCompare(a.date))[0];
+    if(!prev)return;
+    const dd=+prev.date.slice(8,10);
+    const Y=c.s.getFullYear(),M=c.s.getMonth();
+    let k=prev.k;
+    if(prev.n){
+      const ps=cycStartOf(prev.date);
+      k=prev.k+(Y-+ps.slice(0,4))*12+(M-(+ps.slice(5,7)-1));
+      if(k>prev.n)return;
+    }
+    const mm=dd>=CYCLE_DAY?M:M+1;
+    const dim=new Date(Y,mm+1,0).getDate();
+    db.expenses.push({...prev,id:uid(),k,date:iso(new Date(Y,mm,Math.min(dd,dim)))});
+    ch=true;
+  });
+  if(ch)save();
+}
+
+function render(){
+  const c=cycle();
+  ensureRecurring(c);
+  const last=new Date(c.e);last.setDate(last.getDate()-1);
+  document.getElementById('cycTitle').textContent=MONTHS[c.e.getMonth()]+' '+c.e.getFullYear();
+  document.getElementById('cycRange').textContent=dm(c.start)+' – '+dm(iso(last));
+
+  const incs=db.incomes.filter(i=>inCycle(i.date,c)).sort((a,b)=>b.date.localeCompare(a.date));
+  const exps=db.expenses.filter(x=>inCycle(x.date,c));
+  const totalInc=incs.reduce((a,i)=>a+i.amount,0);
+  const totalExp=exps.reduce((a,x)=>a+x.amount,0);
+  const rem=totalInc-totalExp;
+  const byCard=exps.filter(x=>x.pay==='card');
+  const totalCredit=byCard.reduce((a,x)=>a+x.amount,0);
+  const totalAcct=totalExp-totalCredit;
+
+  document.getElementById('remain').textContent=fmt(rem);
+  document.getElementById('inc').textContent=fmt(totalInc);
+  document.getElementById('exp').textContent=fmt(totalExp);
+  document.getElementById('credit').textContent=fmt(totalCredit);
+  document.getElementById('acct').textContent=fmt(totalAcct);
+
+  const ids=[...new Set(byCard.map(x=>x.card))];
+  document.getElementById('cardsplit').innerHTML=ids.length?
+    '<div class="h">חלוקה לפי כרטיס אשראי</div>'+ids.map(id=>{
+      const s=byCard.filter(x=>x.card===id).reduce((a,x)=>a+x.amount,0);
+      return `<div class="l"><span>${esc(cardLabel(id))}</span><b>${fmt(s)}</b></div>`;
+    }).join(''):'';
+
+  const shown=db.places.filter(p=>p.show!==false).map(p=>({p,sum:exps.filter(x=>x.place===p.id).reduce((a,x)=>a+x.amount,0)})).filter(o=>o.sum>0);
+  document.getElementById('placesplit').innerHTML=shown.length?'<div class="h">סה"כ לפי מקום קנייה</div>'+shown.map(o=>`<div class="l"><span>${esc(o.p.name)}</span><b>${fmt(o.sum)}</b></div>`).join(''):'';
+  const detail=id=>{
+    if(!openCats.has(id))return '';
+    const l=exps.filter(x=>id==='__none'?!db.cats.some(q=>q.id===x.cat):x.cat===id).sort((a,b)=>b.date.localeCompare(a.date));
+    return l.length?l.map(x=>`<div class="item"><div class="m"><b>${esc(expLabel(x))}</b><small>${dm(x.date)} · ${x.pay==='card'?'💳 '+esc(cardLabel(x.card)):'🏦 חשבון'}</small></div><span class="a">${fmt(x.amount)}</span><button class="x" style="color:var(--primary)" data-edit-exp="${x.id}">✎</button><button class="x" data-del-exp="${x.id}">✕</button></div>`).join(''):'<div class="empty">אין הוצאות עדיין</div>';
+  };
+  const arr=id=>openCats.has(id)?' ▴':' ▾';
+  const catsEl=document.getElementById('cats');
+  if(!db.cats.length){
+    catsEl.innerHTML='<div class="empty">עוד אין קטגוריות.<br>לחץ "ניהול קטגוריות" כדי להוסיף (דיור, אוכל...) עם תקציב.</div>';
+  }else{
+    catsEl.innerHTML=db.cats.map(k=>{
+      const spent=exps.filter(x=>x.cat===k.id).reduce((a,x)=>a+x.amount,0);
+      if(!(k.budget>0)){
+        return `<div class="cat" data-id="${k.id}"><div class="top"><span class="name">${esc(k.name)}${arr(k.id)}</span><span class="left">${fmt(spent)}</span></div><div class="sub"><span>הוצאו</span><span>ללא תקציב</span></div></div>`+detail(k.id);
+      }
+      const left=k.budget-spent;
+      const pct=k.budget>0?Math.min(100,spent/k.budget*100):(spent>0?100:0);
+      const cls=left<0?'bad':(pct>=80?'warn':'ok');
+      const color=left<0?'var(--bad)':(pct>=80?'var(--warn)':'var(--ok)');
+      return `<div class="cat" data-id="${k.id}">
+        <div class="top"><span class="name">${esc(k.name)}${arr(k.id)}</span><span class="left ${cls}">${left<0?'חריגה '+fmt(-left):fmt(left)+' נשאר'}</span></div>
+        <div class="bar"><i style="width:${pct}%;background:${color}"></i></div>
+        <div class="sub"><span>הוצאו ${fmt(spent)}</span><span>תקציב ${fmt(k.budget)}</span></div>
+      </div>`+detail(k.id);
+    }).join('');
+    const orphan=exps.filter(x=>!db.cats.some(k=>k.id===x.cat)).reduce((a,x)=>a+x.amount,0);
+    if(orphan>0)catsEl.innerHTML+=`<div class="cat" data-id="__none"><div class="top"><span class="name">ללא קטגוריה${arr("__none")}</span><span class="left">${fmt(orphan)}</span></div></div>`+detail("__none");
+  }
+
+  document.getElementById('incomes').innerHTML=`<div class="cat" data-toggle-inc="1"><div class="top"><span class="name">סך הכנסות ${incOpen?'▴':'▾'}</span><span class="left ok">${fmt(totalInc)}</span></div></div>`+
+    (incOpen?(incs.length?incs.map(i=>
+    `<div class="item"><div class="m"><b>${esc(i.name||'הכנסה')}</b><small>${dm(i.date)}</small></div><span class="a ok">+${fmt(i.amount)}</span><button class="x" style="color:var(--primary)" data-edit-inc="${i.id}">✎</button><button class="x" data-del-inc="${i.id}">✕</button></div>`
+  ).join(''):'<div class="empty">אין הכנסות בחודש הזה</div>'):'');
+}
+
+/* sheet */
+const bg=document.getElementById('bg'),sheet=document.getElementById('sheet');
+function openSheet(html){sheet.innerHTML=html;bg.classList.add('on');}
+function closeSheet(){bg.classList.remove('on');}
+bg.addEventListener('click',e=>{if(e.target===bg)closeSheet();});
+const $=id=>document.getElementById(id);
+function ask(msg,yes,label){const o=$('ask');$('askMsg').textContent=msg;o.querySelector('.y').textContent=label||'כן, מחק';o.classList.add('on');
+  o.querySelector('.y').onclick=()=>{o.classList.remove('on');yes();};
+  o.querySelector('.n').onclick=()=>o.classList.remove('on');}
+const today=()=>iso(new Date());
+
+function expenseForm(editId){
+  if(!db.cats.length){categoriesSheet();return;}
+  const ex=editId?db.expenses.find(x=>x.id===editId):null;
+  const c=cycle();
+  let def=today();if(!inCycle(def,c))def=c.start;
+  if(ex)def=ex.date;
+  const cur=ex?(ex.pay==='card'?ex.card:'acct'):'acct';
+  const sel=(v,w)=>v===w?' selected':'';
+  const typ=ex?(ex.n?'inst':(ex.recurring?'rec':'none')):'none';
+  const missingCard=ex&&ex.pay==='card'&&!db.cards.some(k=>k.id===ex.card)?`<option value="${ex.card}" selected>💳 כרטיס שנמחק</option>`:'';
+  openSheet(`<h3>${ex?'עריכת הוצאה':'הוצאה חדשה'} <button class="x" onclick="closeSheet()">✕</button></h3>
+    <label>סכום</label><input id="fa" type="number" inputmode="decimal" placeholder="0" value="${ex?ex.amount:''}">
+    <label>קטגוריה</label><select id="fc">${db.cats.map(k=>`<option value="${k.id}"${sel(k.id,ex&&ex.cat)}>${esc(k.name)}</option>`).join('')}</select>
+    <label>אמצעי תשלום</label><select id="fp"><option value="acct"${sel('acct',cur)}>🏦 מהחשבון</option>${db.cards.map(k=>`<option value="${k.id}"${sel(k.id,cur)}>💳 ${esc(cardLabel(k.id))}</option>`).join('')}${missingCard}</select>
+    <label>תאריך</label><input id="fd" type="date" value="${def}">
+    <label>איפה קנית (לא חובה)</label><select id="fl"><option value="">—</option>${db.places.map(k=>`<option value="${k.id}"${sel(k.id,ex&&ex.place)}>${esc(k.name)}</option>`).join('')}</select>
+    <label>סוג הוצאה</label><select id="ft"><option value="none"${sel('none',typ)}>רגילה</option><option value="rec"${sel('rec',typ)}>🔁 קבועה (כל חודש)</option><option value="inst"${sel('inst',typ)}>💳 עסקה בתשלומים</option></select>
+    <div id="instbox" style="display:${typ==='inst'?'block':'none'}">
+      <label>מספר תשלומים</label><input id="fn2" type="number" min="2" inputmode="numeric" value="${ex&&ex.n?ex.n:''}">
+      <label>הסכום שהוזן הוא</label><select id="fb"><option value="total"${ex&&ex.n?'':' selected'}>סך העסקה (יחולק למספר התשלומים)</option><option value="each"${ex&&ex.n?' selected':''}>סכום כל תשלום</option></select>
+      <div class="hint" id="ih"></div>
+    </div>
+    <button class="btn" style="width:100%;margin-top:16px" id="fs">שמור</button>`);
+  if(!ex)setTimeout(()=>$('fa').focus(),50);
+  const upd=()=>{
+    $('instbox').style.display=$('ft').value==='inst'?'block':'none';
+    const a=parseFloat($('fa').value),n=parseInt($('fn2').value);
+    $('ih').textContent=(a>0&&n>=2)?($('fb').value==='total'?'= '+fmt(a/n)+' לחודש, '+n+' חודשים':'= '+fmt(a*n)+' בסך הכל'):'';
+  };
+  ['ft','fb'].forEach(i=>$(i).onchange=upd);['fa','fn2'].forEach(i=>$(i).oninput=upd);upd();
+  $('fs').onclick=()=>{
+    const a=parseFloat($('fa').value);
+    if(!(a>0)){$('fa').focus();return;}
+    const p=$('fp').value;
+    const type=$('ft').value,rec=type!=='none';
+    let n=null,amt=a;
+    if(type==='inst'){
+      n=parseInt($('fn2').value);
+      if(!(n>=2)){$('fn2').focus();return;}
+      if($('fb').value==='total')amt=Math.round(a/n*100)/100;
+    }
+    const data={amount:amt,cat:$('fc').value,date:$('fd').value||today(),place:$('fl').value,note:ex?ex.note||'':'',pay:p==='acct'?'acct':'card',card:p==='acct'?null:p,n};
+    if(ex){
+      const wasSeries=!!(ex.recurring&&ex.rid);
+      const cs=cycStartOf(ex.date),rid=ex.rid;
+      if(wasSeries){
+        db.expenses=db.expenses.filter(x=>!(x.rid===rid&&x.id!==ex.id&&cycStartOf(x.date)>cs));
+        if(!rec)db.stops.push({rid,from:cs});
+      }
+      const k=type==='inst'?(wasSeries&&ex.n?ex.k:1):null;
+      Object.assign(ex,data,{recurring:rec,rid:rec?(wasSeries?rid:uid()):null,k});
+    }else db.expenses.push({id:uid(),...data,recurring:rec,rid:rec?uid():null,k:type==='inst'?1:null});
+    save();closeSheet();render();
+  };
+}
+
+function incomeForm(editId){
+  const ex=editId?db.incomes.find(x=>x.id===editId):null;
+  const c=cycle();
+  let def=today();if(!inCycle(def,c))def=c.start;
+  if(ex)def=ex.date;
+  openSheet(`<h3>${ex?'עריכת הכנסה':'הכנסה חדשה'} <button class="x" onclick="closeSheet()">✕</button></h3>
+    <label>סכום</label><input id="fa" type="number" inputmode="decimal" placeholder="0" value="${ex?ex.amount:''}">
+    <label>מקור (משכורת, מתנה...)</label><input id="fn" type="text" value="${ex?esc(ex.name||''):''}">
+    <label>תאריך</label><input id="fd" type="date" value="${def}">
+    <button class="btn sec2" style="width:100%;margin-top:16px" id="fs">שמור</button>`);
+  if(!ex)setTimeout(()=>$('fa').focus(),50);
+  $('fs').onclick=()=>{
+    const a=parseFloat($('fa').value);
+    if(!(a>0)){$('fa').focus();return;}
+    const data={amount:a,name:$('fn').value.trim(),date:$('fd').value||today()};
+    if(ex)Object.assign(ex,data);else db.incomes.push({id:uid(),...data});
+    save();closeSheet();render();
+  };
+}
+
+const SET={
+  cats:{title:'קטגוריות ותקציב',hint:'שם הקטגוריה | תקציב חודשי (₪)',
+    row:k=>`<input type="text" data-f="name" value="${k?esc(k.name):''}" placeholder="קטגוריה (למשל: דיור)"><input type="number" inputmode="decimal" data-f="budget" value="${k?k.budget:''}" placeholder="תקציב">`,
+    read:(r,o)=>{const n=r.querySelector('[data-f=name]').value.trim();o.name=n||o.name||'';o.budget=Math.max(0,parseFloat(r.querySelector('[data-f=budget]').value)||0);}},
+  cards:{title:'כרטיסי אשראי',hint:'שם הכרטיס | של מי',
+    row:k=>`<input type="text" data-f="name" value="${k?esc(k.name):''}" placeholder="כרטיס (למשל: ויזה 1234)"><input type="text" data-f="owner" value="${k?esc(k.owner||''):''}" placeholder="של מי">`,
+    read:(r,o)=>{const n=r.querySelector('[data-f=name]').value.trim();o.name=n||o.name||'';o.owner=r.querySelector('[data-f=owner]').value.trim();}},
+  places:{title:'מקומות קנייה',hint:'שם המקום | V = יוצג בסיכום בחלק הכחול',
+    row:k=>`<input type="text" data-f="name" value="${k?esc(k.name):''}" placeholder="מקום (למשל: שופרסל)"><label style="margin:0;display:flex;gap:4px;align-items:center;white-space:nowrap;font-size:13px"><input type="checkbox" data-f="show"${!k||k.show!==false?' checked':''}>בסיכום</label>`,
+    read:(r,o)=>{const n=r.querySelector('[data-f=name]').value.trim();o.name=n||o.name||'';o.show=r.querySelector('[data-f=show]').checked;}}
+};
+const setRow=(t,k)=>`<div class="crow" data-id="${k?k.id:''}">${SET[t].row(k)}<button class="x" data-del="${t}">🗑</button></div>`;
+
+function categoriesSheet(){
+  const sec=t=>`<h4>${SET[t].title}</h4><div class="hint" style="margin:0 0 10px">${SET[t].hint}</div>
+    <div id="rows-${t}">${db[t].map(k=>setRow(t,k)).join('')}${setRow(t,null)}</div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn ghost" data-addrow="${t}" style="padding:10px;font-size:14px">+ הוסף עוד</button>
+      <button class="btn" data-save="${t}" style="padding:10px;font-size:14px">שמור</button>
+    </div>`;
+  openSheet(`<h3>הגדרות <button class="x" onclick="closeSheet()">✕</button></h3>`+sec('cats')+sec('cards')+sec('places'));
+  sheet.onclick=e=>{
+    const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.addrow){
+      const t=b.dataset.addrow;
+      $('rows-'+t).insertAdjacentHTML('beforeend',setRow(t,null));
+      const ins=$('rows-'+t).querySelectorAll('.crow');ins[ins.length-1].querySelector('input').focus();
+    }else if(b.dataset.save){
+      const t=b.dataset.save;
+      $('rows-'+t).querySelectorAll('.crow').forEach(r=>{
+        if(r.dataset.id){const o=db[t].find(x=>x.id===r.dataset.id);if(o)SET[t].read(r,o);}
+        else{const o={id:uid()};SET[t].read(r,o);if(o.name){db[t].push(o);r.dataset.id=o.id;}}
+      });
+      save();render();
+      b.textContent='נשמר ✓';setTimeout(()=>{b.textContent='שמור';},1200);
+    }else if(b.dataset.del){
+      const t=b.dataset.del,r=b.closest('.crow'),id=r.dataset.id;
+      if(!id){r.remove();return;}
+      const msg={cats:'למחוק את הקטגוריה? ההוצאות שלה יישארו תחת "ללא קטגוריה".',cards:'למחוק את הכרטיס? הוצאות קיימות יישארו עם "כרטיס שנמחק".',places:'למחוק את המקום? הוצאות קיימות יישארו בלי מקום.'}[t];
+      ask(msg,()=>{db[t]=db[t].filter(x=>x.id!==id);save();r.remove();render();});
+    }
+  };
+}
+
+function catDetail(id){
+  const c=cycle();
+  const k=db.cats.find(x=>x.id===id);
+  const list=db.expenses.filter(x=>inCycle(x.date,c)&&(id==='__none'?!db.cats.some(q=>q.id===x.cat):x.cat===id)).sort((a,b)=>b.date.localeCompare(a.date));
+  openSheet(`<h3>${esc(k?k.name:'ללא קטגוריה')} <button class="x" onclick="closeSheet()">✕</button></h3>`+
+    (list.length?list.map(x=>`<div class="item"><div class="m"><b>${esc(expLabel(x))}</b><small>${dm(x.date)} · ${x.pay==='card'?'💳 '+esc(cardLabel(x.card)):'🏦 חשבון'}</small></div><span class="a">${fmt(x.amount)}</span><button class="x" style="color:var(--primary)" data-edit-exp="${x.id}">✎</button><button class="x" data-del-exp="${x.id}">✕</button></div>`).join(''):'<div class="empty">אין הוצאות עדיין</div>'));
+}
+
+document.addEventListener('click',e=>{
+  const t=e.target;
+  if(t.dataset.delInc){const id=t.dataset.delInc;ask('למחוק הכנסה?',()=>{db.incomes=db.incomes.filter(i=>i.id!==id);save();render();});return;}
+  if(t.dataset.editInc){incomeForm(t.dataset.editInc);return;}
+  if(t.dataset.editExp){expenseForm(t.dataset.editExp);return;}
+  if(t.dataset.delExp){const id=t.dataset.delExp;ask((db.expenses.find(i=>i.id===id)||{}).recurring?'למחוק את ההוצאה הקבועה מהחודש הזה בלבד? (להפסקה לצמיתות: עריכה ← ביטול סימון "הוצאה קבועה")':'למחוק הוצאה?',()=>{const e=db.expenses.find(i=>i.id===id);if(e&&e.recurring&&e.rid)db.skips.push({rid:e.rid,cyc:cycStartOf(e.date)});db.expenses=db.expenses.filter(i=>i.id!==id);save();render();});return;}
+  if(t.closest('[data-toggle-inc]')){incOpen=!incOpen;render();return;}
+  const cat=t.closest('.cat');
+  if(cat&&cat.dataset.id){const i=cat.dataset.id;openCats.has(i)?openCats.delete(i):openCats.add(i);render();}
+});
+
+$('addExp').onclick=()=>expenseForm();
+$('addInc').onclick=()=>incomeForm();
+$('manageCats').onclick=categoriesSheet;
+// RTL: right button (›) = back in time, left button (‹) = forward
+$('next').onclick=()=>{offset--;render();};
+$('prev').onclick=()=>{offset++;render();};
+
+$('lin').onclick=()=>doAuth('in');$('lup').onclick=()=>doAuth('up');
+$('lp').onkeydown=e=>{if(e.key==='Enter')doAuth('in');};
+if(cloud)$('logoutBtn').style.display='block';
+$('logoutBtn').onclick=()=>ask('להתנתק? הנתונים נשארים בענן.',logout,'כן, התנתק');
+$('exportBtn').onclick=()=>{
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(db)],{type:'application/json'}));
+  a.download='expenses-backup-'+today()+'.json';a.click();
+};
+$('importBtn').onclick=()=>$('file').click();
+$('file').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{try{const d=JSON.parse(r.result);if(d.cats&&d.incomes&&d.expenses){ask('להחליף את כל הנתונים הקיימים?',()=>{d.cards=d.cards||[];d.places=d.places||[];d.skips=d.skips||[];d.stops=d.stops||[];db=d;save();render();},'כן, החלף');}}catch(_){alert('קובץ לא תקין');}};
+  r.readAsText(f);e.target.value='';
+};
+
+boot();
+</script>
+</body>
+</html>
