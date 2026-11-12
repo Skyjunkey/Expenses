@@ -135,6 +135,7 @@ input,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:
 
 <div class="fab"><div class="in">
   <button class="btn sec2" id="addInc">+ הכנסה</button>
+  <button class="btn" id="addFood" style="background:#e8890c">+ אוכל</button>
   <button class="btn" id="addExp">+ הוצאה</button>
 </div></div>
 
@@ -260,7 +261,8 @@ document.addEventListener('visibilitychange',()=>{
   else pull().then(render);
 });
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
-const fmt=n=>'₪'+Math.round(n).toLocaleString('he-IL');
+const fmt=n=>'₪'+(Math.round(n*100)/100).toLocaleString('he-IL',{maximumFractionDigits:2});
+const num=v=>parseFloat(String(v).replace(',','.'));
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 const dm=s=>{const [y,m,d]=s.split('-');return d+'/'+m;};
@@ -387,7 +389,7 @@ function ask(msg,yes,label){const o=$('ask');$('askMsg').textContent=msg;o.query
   o.querySelector('.n').onclick=()=>o.classList.remove('on');}
 const today=()=>iso(new Date());
 
-function expenseForm(editId){
+function expenseForm(editId,presetName){
   if(!db.cats.length){categoriesSheet();return;}
   const ex=editId?db.expenses.find(x=>x.id===editId):null;
   const c=cycle();
@@ -395,12 +397,13 @@ function expenseForm(editId){
   if(ex)def=ex.date;
   const cur=ex?(ex.pay==='card'?ex.card:'acct'):'acct';
   const sel=(v,w)=>v===w?' selected':'';
+  const pre=(!ex&&presetName)?(db.cats.find(k=>k.name.trim()===presetName)||{}).id:null;
   const typ=ex?(ex.n?'inst':(ex.recurring?'rec':'none')):'none';
   const missingCard=ex&&ex.pay==='card'&&!db.cards.some(k=>k.id===ex.card)?`<option value="${ex.card}" selected>💳 כרטיס שנמחק</option>`:'';
   openSheet(`<h3>${ex?'עריכת הוצאה':'הוצאה חדשה'} <button class="x" onclick="closeSheet()">✕</button></h3>
-    <label>סכום</label><input id="fa" type="number" inputmode="decimal" placeholder="0" value="${ex?ex.amount:''}">
+    <label>סכום</label><input id="fa" type="text" inputmode="decimal" placeholder="0" value="${ex?ex.amount:''}">
     <label>שם ההוצאה (לא חובה)</label><input id="fnm" type="text" value="${ex?esc(ex.note||''):''}">
-    <label>קטגוריה</label><select id="fc">${db.cats.map(k=>`<option value="${k.id}"${sel(k.id,ex&&ex.cat)}>${esc(k.name)}</option>`).join('')}</select>
+    <label>קטגוריה</label><select id="fc">${db.cats.map(k=>`<option value="${k.id}"${sel(k.id,ex?ex.cat:pre)}>${esc(k.name)}</option>`).join('')}</select>
     <label>אמצעי תשלום</label><select id="fp"><option value="acct"${sel('acct',cur)}>🏦 מהחשבון</option>${db.cards.map(k=>`<option value="${k.id}"${sel(k.id,cur)}>💳 ${esc(cardLabel(k.id))}</option>`).join('')}${missingCard}</select>
     <label>תאריך</label><input id="fd" type="date" value="${def}">
     <label>איפה קנית (לא חובה)</label><select id="fl"><option value="">—</option>${db.places.map(k=>`<option value="${k.id}"${sel(k.id,ex&&ex.place)}>${esc(k.name)}</option>`).join('')}</select>
@@ -414,12 +417,12 @@ function expenseForm(editId){
   if(!ex)setTimeout(()=>$('fa').focus(),50);
   const upd=()=>{
     $('instbox').style.display=$('ft').value==='inst'?'block':'none';
-    const a=parseFloat($('fa').value),n=parseInt($('fn2').value);
+    const a=num($('fa').value),n=parseInt($('fn2').value);
     $('ih').textContent=(a>0&&n>=2)?($('fb').value==='total'?'= '+fmt(a/n)+' לחודש, '+n+' חודשים':'= '+fmt(a*n)+' בסך הכל'):'';
   };
   ['ft','fb'].forEach(i=>$(i).onchange=upd);['fa','fn2'].forEach(i=>$(i).oninput=upd);upd();
   $('fs').onclick=()=>{
-    const a=parseFloat($('fa').value);
+    const a=num($('fa').value);
     if(!(a>0)){$('fa').focus();return;}
     const p=$('fp').value;
     const type=$('ft').value,rec=type!=='none';
@@ -450,13 +453,13 @@ function incomeForm(editId){
   let def=today();if(!inCycle(def,c))def=c.start;
   if(ex)def=ex.date;
   openSheet(`<h3>${ex?'עריכת הכנסה':'הכנסה חדשה'} <button class="x" onclick="closeSheet()">✕</button></h3>
-    <label>סכום</label><input id="fa" type="number" inputmode="decimal" placeholder="0" value="${ex?ex.amount:''}">
+    <label>סכום</label><input id="fa" type="text" inputmode="decimal" placeholder="0" value="${ex?ex.amount:''}">
     <label>מקור (משכורת, מתנה...)</label><input id="fn" type="text" value="${ex?esc(ex.name||''):''}">
     <label>תאריך</label><input id="fd" type="date" value="${def}">
     <button class="btn sec2" style="width:100%;margin-top:16px" id="fs">שמור</button>`);
   if(!ex)setTimeout(()=>$('fa').focus(),50);
   $('fs').onclick=()=>{
-    const a=parseFloat($('fa').value);
+    const a=num($('fa').value);
     if(!(a>0)){$('fa').focus();return;}
     const data={amount:a,name:$('fn').value.trim(),date:$('fd').value||today()};
     if(ex)Object.assign(ex,data);else db.incomes.push({id:uid(),...data});
@@ -466,8 +469,8 @@ function incomeForm(editId){
 
 const SET={
   cats:{title:'קטגוריות ותקציב',hint:'שם הקטגוריה | תקציב חודשי (₪)',
-    row:k=>`<input type="text" data-f="name" value="${k?esc(k.name):''}" placeholder="קטגוריה (למשל: דיור)"><input type="number" inputmode="decimal" data-f="budget" value="${k?k.budget:''}" placeholder="תקציב">`,
-    read:(r,o)=>{const n=r.querySelector('[data-f=name]').value.trim();o.name=n||o.name||'';o.budget=Math.max(0,parseFloat(r.querySelector('[data-f=budget]').value)||0);}},
+    row:k=>`<input type="text" data-f="name" value="${k?esc(k.name):''}" placeholder="קטגוריה (למשל: דיור)"><input type="text" inputmode="decimal" data-f="budget" value="${k?k.budget:''}" placeholder="תקציב">`,
+    read:(r,o)=>{const n=r.querySelector('[data-f=name]').value.trim();o.name=n||o.name||'';o.budget=Math.max(0,num(r.querySelector('[data-f=budget]').value)||0);}},
   cards:{title:'כרטיסי אשראי',hint:'שם הכרטיס | של מי',
     row:k=>`<input type="text" data-f="name" value="${k?esc(k.name):''}" placeholder="כרטיס (למשל: ויזה 1234)"><input type="text" data-f="owner" value="${k?esc(k.owner||''):''}" placeholder="של מי">`,
     read:(r,o)=>{const n=r.querySelector('[data-f=name]').value.trim();o.name=n||o.name||'';o.owner=r.querySelector('[data-f=owner]').value.trim();}},
@@ -528,6 +531,7 @@ document.addEventListener('click',e=>{
 });
 
 $('addExp').onclick=()=>expenseForm();
+$('addFood').onclick=()=>expenseForm(null,'אוכל');
 $('addInc').onclick=()=>incomeForm();
 $('manageCats').onclick=categoriesSheet;
 // RTL: right button (›) = back in time, left button (‹) = forward
